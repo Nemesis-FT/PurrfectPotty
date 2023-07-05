@@ -3,6 +3,7 @@ from configuration import BOT_TOKEN, ADMIN_USERNAME, ADMIN_PASSWORD, CHAT_ID
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     if str(message.chat.id) != CHAT_ID:
@@ -11,4 +12,5 @@ def send_welcome(message):
                           "your cat's litterbox, or change parameters of the smart litterbox.")
 
 
+print("Bot is now running...")
 bot.infinity_polling()

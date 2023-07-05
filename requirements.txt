@@ -9,3 +9,5 @@ uvicorn~=0.22.0
 python-multipart
 jose~=1.0.0
 telebot
+influxdb-client
+paho-mqtt
