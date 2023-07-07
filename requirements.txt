@@ -11,3 +11,4 @@ jose~=1.0.0
 telebot
 influxdb-client
 paho-mqtt
+telegram-menu
