@@ -183,11 +183,8 @@ class SecondMenuMessage(BaseMessage):
         return textualized_info
 
 
-TelegramMenuSession(BOT_TOKEN).start(StartMessage)
-
-
-
 print("Bot is now running...")
 bot.infinity_polling()
+TelegramMenuSession(BOT_TOKEN).start(StartMessage)
 
 
