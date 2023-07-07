@@ -61,6 +61,8 @@ class SecondMenuMessage(BaseMessage):
         self.add_button(label="set use counter", callback=self.run_and_notify("use_counter"))
         # 'run_and_notify' function executes an action and return a string as Telegram notification.
         self.add_button(label="set used offset", callback=self.run_and_notify("used_offset"))
+        # 'get info' button returns a string as Telegram notification.
+        self.add_button(label="get info", callback=self.get_info(message="info"))
         # 'back' button goes back to previous menu
         self.add_button_back()
         # 'home' button goes back to main menu
@@ -73,7 +75,7 @@ class SecondMenuMessage(BaseMessage):
         return ":warning: Second message"
 
     @staticmethod
-    def set_sampling_rate(message):
+    def set_sampling_rate(message) -> str:
         if message.text.isdigit() == False:
             bot.reply_to(message, "Sampling rate must be a number.")
             return
@@ -81,7 +83,7 @@ class SecondMenuMessage(BaseMessage):
         settings['sampling_rate']['value'] = message.text
         return "Sampling rate set to " + message.text + " seconds."
     
-    def set_tare_timeout(message):
+    def set_tare_timeout(message)-> str:
         if message.text.isdigit() == False:
             bot.reply_to(message, "Sampling rate must be a number.")
             return
@@ -89,7 +91,7 @@ class SecondMenuMessage(BaseMessage):
         settings['tare_timeout']['value'] = message.text
         return "Tare timeout set to " + message.text + " seconds."
     
-    def set_danger_threshold(message):
+    def set_danger_threshold(message)-> str:
         if message.text.isdigit() == False:
             bot.reply_to(message, "Sampling rate must be a number.")
             return
@@ -97,7 +99,7 @@ class SecondMenuMessage(BaseMessage):
         settings['danger_threshold']['value'] = message.text
         return "Danger threshold set to " + message.text + " grams."
     
-    def set_danger_counter(message):
+    def set_danger_counter(message)-> str:
         if message.text.isdigit() == False:
             bot.reply_to(message, "Sampling rate must be a number.")
             return
@@ -105,7 +107,7 @@ class SecondMenuMessage(BaseMessage):
         settings['danger_counter']['value'] = message.text
         return "Danger counter set to " + message.text + " times."
     
-    def set_use_counter(message):
+    def set_use_counter(message)-> str:
         if message.text.isdigit() == False:
             bot.reply_to(message, "Sampling rate must be a number.")
             return
@@ -113,7 +115,7 @@ class SecondMenuMessage(BaseMessage):
         settings['use_counter']['value'] = message.text
         return "Use counter set to " + message.text + " times."
     
-    def set_used_offset(message):
+    def set_used_offset(message)-> str:
         if message.text.isdigit() == False:
             bot.reply_to(message, "Sampling rate must be a number.")
             return
@@ -156,6 +158,19 @@ class SecondMenuMessage(BaseMessage):
         settings['used_offset']['value'] = message.text
         return "Used offset set to " + message.text + " grams."
     
+    def get_info(message) -> str:
+        # get the info from the API
+        json_info = requests.get('http://API_URI:5000/get_info')
+        textualized_info = "Current settings:\n", "Sampling rate: ", 
+        json_info['sampling_rate']["value"], " ms\n", 
+        "Tare timeout: ", json_info['tare_timeout']["value"], 
+        " seconds\n", "Danger threshold: ", json_info['danger_threshold']["value"], " grams\n", 
+        "Danger counter: ", json_info['danger_counter']["value"], " times\n", 
+        "Use counter: ", json_info['use_counter']["value"], " times\n", 
+        "Used offset: ", json_info['used_offset']["value"], " grams\n"
+        # return a string to be sent as a message
+        bot.reply_to(message, textualized_info)
+        return textualized_info
 
 
 TelegramMenuSession(BOT_TOKEN).start(StartMessage)
