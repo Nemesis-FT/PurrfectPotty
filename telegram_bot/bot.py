@@ -85,41 +85,51 @@ class SecondMenuMessage(BaseMessage):
     
     def set_tare_timeout(message)-> str:
         if message.text.isdigit() == False:
-            bot.reply_to(message, "Sampling rate must be a number.")
+            bot.reply_to(message, "Setting value must be a number.")
             return
-        requests.post('http://API_URI:5000/set_tare_timeout', json={"tare_timeout": message.text})
+        json_info = requests.get('http://API_URI:5000/api/settings/v1')
+        json_info['litter']['tare_timeout']['value'] = message.text
+        requests.post('http://API_URI:5000/api/settings/v1', json=json_info)
         settings['tare_timeout']['value'] = message.text
         return "Tare timeout set to " + message.text + " seconds."
     
     def set_danger_threshold(message)-> str:
         if message.text.isdigit() == False:
-            bot.reply_to(message, "Sampling rate must be a number.")
+            bot.reply_to(message, "Setting value must be a number.")
             return
-        requests.post('http://API_URI:5000/set_danger_threshold', json={"danger_threshold": message.text})
+        json_info = requests.get('http://API_URI:5000/api/settings/v1')
+        json_info['litter']['danger_threshold']['value'] = message.text
+        requests.post('http://API_URI:5000/api/settings/v1', json=json_info)
         settings['danger_threshold']['value'] = message.text
         return "Danger threshold set to " + message.text + " grams."
     
     def set_danger_counter(message)-> str:
         if message.text.isdigit() == False:
-            bot.reply_to(message, "Sampling rate must be a number.")
+            bot.reply_to(message, "Setting value must be a number.")
             return
-        requests.post('http://API_URI:5000/set_danger_counter', json={"danger_counter": message.text})
+        json_info = requests.get('http://API_URI:5000/api/settings/v1')
+        json_info['litter']['danger_counter']['value'] = message.text
+        requests.post('http://API_URI:5000/api/settings/v1', json=json_info)
         settings['danger_counter']['value'] = message.text
         return "Danger counter set to " + message.text + " times."
     
     def set_use_counter(message)-> str:
         if message.text.isdigit() == False:
-            bot.reply_to(message, "Sampling rate must be a number.")
+            bot.reply_to(message, "Setting value must be a number.")
             return
-        requests.post('http://API_URI:5000/set_use_counter', json={"use_counter": message.text})
+        json_info = requests.get('http://API_URI:5000/api/settings/v1')
+        json_info['litter']['use_counter']['value'] = message.text
+        requests.post('http://API_URI:5000/api/settings/v1', json=json_info)
         settings['use_counter']['value'] = message.text
         return "Use counter set to " + message.text + " times."
     
     def set_used_offset(message)-> str:
         if message.text.isdigit() == False:
-            bot.reply_to(message, "Sampling rate must be a number.")
+            bot.reply_to(message, "Setting value must be a number.")
             return
-        requests.post('http://API_URI:5000/set_used_offset', json={"used_offset": message.text})
+        json_info = requests.get('http://API_URI:5000/api/settings/v1')
+        json_info['litter']['used_offset']['value'] = message.text
+        requests.post('http://API_URI:5000/api/settings/v1', json=json_info)
         settings['used_offset']['value'] = message.text
         return "Used offset set to " + message.text + " grams."
     
@@ -160,7 +170,7 @@ class SecondMenuMessage(BaseMessage):
     
     def get_info(message) -> str:
         # get the info from the API
-        json_info = requests.get('http://API_URI:5000/get_info')
+        json_info = requests.get('http://API_URI:5000/api/settings/v1')
         textualized_info = "Current settings:\n", "Sampling rate: ", 
         json_info['sampling_rate']["value"], " ms\n", 
         "Tare timeout: ", json_info['tare_timeout']["value"], 
