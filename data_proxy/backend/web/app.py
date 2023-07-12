@@ -12,6 +12,7 @@ from data_proxy.backend.web.errors import ApplicationException
 
 from data_proxy.backend.web.routes.api.user.v1.router import router as user_router
 from data_proxy.backend.web.routes.api.settings.v1.router import router as settings_router
+from data_proxy.backend.web.routes.api.actions.v1.router import router as action_router
 
 from handlers import handle_generic_error, handle_application_error
 
@@ -27,6 +28,7 @@ app = fastapi.FastAPI(
 
 app.include_router(user_router)
 app.include_router(settings_router)
+app.include_router(action_router)
 
 app.add_exception_handler(ApplicationException, handle_application_error)
 app.add_exception_handler(Exception, handle_generic_error)

@@ -16,3 +16,20 @@ class SettingsEdit(base.Model):
     tare_timeout: int
     danger_threshold: int
     danger_counter: int
+
+
+class ActionEdit(base.Model):
+    thing_token: str
+    timestamp: str
+
+
+class RssiAction(ActionEdit):
+    rssi_str: float
+
+
+class LitterUsed(ActionEdit):
+    pass
+
+
+class LitterEmpty(ActionEdit):
+    pass

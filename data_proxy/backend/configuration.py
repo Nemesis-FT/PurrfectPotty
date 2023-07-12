@@ -58,6 +58,13 @@ def setting_optional(name) -> typing.Optional[str]:
 JWT_KEY = setting_required("JWT_KEY")
 ADMIN_USERNAME = setting_required("ADMIN_USERNAME")
 ADMIN_PASSWORD = setting_required("ADMIN_PASSWORD")
+THING_TOKEN = setting_required("THING_TOKEN")
+IFD_BUCKET = setting_required("IFD_BUCKET")
+IFD_ORG = setting_required("IFD_ORG")
+IFD_TOKEN = setting_required("IFD_TOKEN")
+IFD_URL = setting_required("IFD_URL")
+BOT_TOKEN = setting_required("BOT_TOKEN")
+CHAT_ID = setting_required("CHAT_ID")
 # Variabili d'ambiente necessarie, ma non definite qui
 # BIND_IP
 # BIND_PORT
