@@ -35,7 +35,7 @@ def rssi_action(*, data: RssiAction, tasker: BackgroundTasks):
 def litter_usage_action(*, data: LitterUsed, tasker: BackgroundTasks):
     if data.thing_token != THING_TOKEN:
         raise Denied
-    save_to_influx({}, "litter_usage")
+    save_to_influx({'value': 1}, "litter_usage")
     tasker.add_task(logger, f"LU;{datetime.now().timestamp()};{data.timestamp}\n")
     tasker.add_task(telegram_send_message, f"""
     🔈<b> Litterbox usage detected! </b>
@@ -49,7 +49,7 @@ def litter_usage_action(*, data: LitterUsed, tasker: BackgroundTasks):
 def litter_alarm_action(*, data: LitterEmpty, tasker: BackgroundTasks):
     if data.thing_token != THING_TOKEN:
         raise Denied
-    save_to_influx({}, "litter_alarm")
+    save_to_influx({'value': 1}, "litter_alarm")
     tasker.add_task(logger, f"LA;{datetime.now().timestamp()};{data.timestamp}\n")
     tasker.add_task(telegram_send_message, f"""
     🚨<b> Warning! Litterbox almost empty! </b> 🚨

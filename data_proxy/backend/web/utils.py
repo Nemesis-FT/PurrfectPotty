@@ -27,8 +27,9 @@ def save_to_influx(data: dict, measurement):
     writer = influx_client.write_api(write_options=SYNCHRONOUS)
     p = influxdb_client.Point(measurement)
     for key in data.keys():
-        p = p.tag(key, data[key])
+        p = p.field(key, data[key])
     writer.write(bucket=IFD_BUCKET, org=IFD_ORG, record=p)
+    writer.close()
 
 
 def logger(data):
@@ -38,7 +39,7 @@ def logger(data):
 
 def telegram_send_message(message):
     try:
-        a = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage?chat_id={CHAT_ID}&text={message}&parse_mode=html")
-        print(a)
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage?chat_id={CHAT_ID}&text={message}&parse_mode=html")
     except Exception as e:
         pass
