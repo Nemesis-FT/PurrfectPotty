@@ -14,7 +14,7 @@ from data_proxy.backend.web.routes.api.user.v1.router import router as user_rout
 from data_proxy.backend.web.routes.api.settings.v1.router import router as settings_router
 from data_proxy.backend.web.routes.api.actions.v1.router import router as action_router
 
-from handlers import handle_generic_error, handle_application_error
+from data_proxy.backend.web.handlers import handle_generic_error, handle_application_error
 
 with open(pathlib.Path(__file__).parent.joinpath("description.md")) as file:
     description = file.read()
