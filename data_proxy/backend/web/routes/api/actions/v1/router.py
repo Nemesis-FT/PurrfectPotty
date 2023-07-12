@@ -1,7 +1,6 @@
 import fastapi.routing
 import starlette.responses
-from fastapi import Depends
-from data_proxy.backend.configuration import THING_TOKEN
+from data_proxy.backend.web.configuration import THING_TOKEN
 from data_proxy.backend.web.errors import Denied
 from data_proxy.backend.web.models.edit import RssiAction, LitterUsed, LitterEmpty
 from datetime import datetime

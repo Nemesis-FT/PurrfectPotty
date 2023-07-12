@@ -2,7 +2,7 @@ import json
 import influxdb_client
 import requests
 from influxdb_client.client.write_api import SYNCHRONOUS
-from data_proxy.backend.configuration import IFD_ORG, IFD_URL, IFD_TOKEN, IFD_BUCKET, BOT_TOKEN, CHAT_ID
+from data_proxy.backend.web.configuration import IFD_ORG, IFD_URL, IFD_TOKEN, IFD_BUCKET, BOT_TOKEN, CHAT_ID
 
 influx_client = influxdb_client.InfluxDBClient(
     url=IFD_URL,
