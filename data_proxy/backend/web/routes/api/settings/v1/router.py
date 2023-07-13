@@ -5,7 +5,8 @@ from data_proxy.backend.web.authentication import get_current_user
 from data_proxy.backend.web.errors import Denied
 from data_proxy.backend.web.models.edit import SettingsEdit
 from data_proxy.backend.web.crud import *
-from data_proxy.backend.web.utils import save_new_config, get_current_config
+from data_proxy.backend.web.utils import save_new_config, get_current_config, config_updater
+from fastapi import BackgroundTasks
 
 router = fastapi.routing.APIRouter(
     prefix="/api/settings/v1",
@@ -30,7 +31,7 @@ def setting_get(*, current_user=Depends(get_current_user), config=Depends(get_cu
 @router.put("/",
             summary="Update configuration",
             status_code=200, response_model=SettingsEdit)
-def setting_update(*, data: SettingsEdit, current_user=Depends(get_current_user)):
+def setting_update(*, data: SettingsEdit, tasker: BackgroundTasks, current_user=Depends(get_current_user)):
     new = {
         "litter": {
             "sampling_rate": {
@@ -59,6 +60,6 @@ def setting_update(*, data: SettingsEdit, current_user=Depends(get_current_user)
             }
         }
     }
-    # TODO: Add MQTT request
     save_new_config(new)
+    tasker.add_task(config_updater, new['litter'])
     return data

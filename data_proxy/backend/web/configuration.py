@@ -65,6 +65,9 @@ IFD_TOKEN = setting_required("IFD_TOKEN")
 IFD_URL = setting_required("IFD_URL")
 BOT_TOKEN = setting_required("BOT_TOKEN")
 CHAT_ID = setting_required("CHAT_ID")
+MQTT_USERNAME = setting_required("MQTT_USERNAME")
+MQTT_PASSWORD = setting_required("MQTT_PASSWORD")
+MQTT_BROKER = setting_required("MQTT_BROKER")
 # Variabili d'ambiente necessarie, ma non definite qui
 # BIND_IP
 # BIND_PORT
