@@ -26,7 +26,7 @@ def config_updater(config: dict):
     msg = ""
     for key in config.keys():
         msg += str(config[key]["value"]) + ";"
-    client.publish(topic="esp32/config", payload=msg)
+    client.publish(topic="esp32/config", payload=msg[:-1], retain=True)
     client.loop_stop()
     client.disconnect()
 
