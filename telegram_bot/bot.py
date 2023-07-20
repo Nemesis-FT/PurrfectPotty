@@ -8,18 +8,18 @@ from configuration import BOT_TOKEN, ADMIN_USERNAME, ADMIN_PASSWORD, CHAT_ID, AP
 # defining settings controllable by the bot
 
 def login():
-    ans = requests.post(f"http://{API_URI}/token",
+    ans = requests.post(f"{API_URI}/token",
                         data={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD, "grant_type": "password"})
     ans = ans.json()
     return f"Bearer {ans['access_token']}"
 
 
-settings = requests.get(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()})
+settings = requests.get(f'{API_URI}/api/settings/v1', headers={"Authorization": login()})
 settings = settings.json()
 
 # Init the  bot with token
 bot = telebot.TeleBot(BOT_TOKEN)
-
+user_register_dict = {}
 
 # parse number from message
 def extract_number(text):
@@ -57,7 +57,7 @@ def main_menu_handler(message):
         message = bot.reply_to(message,
                                "Coming right up!",
                                reply_markup=markup)
-        bot.register_next_step_handler(message, set_config)
+        bot.register_next_step_handler(message, get_value_handler)
     elif message.text == 'Get Configuration':
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
@@ -81,46 +81,59 @@ def main_menu_handler(message):
                                reply_markup=markup)
         bot.register_next_step_handler(message, main_menu_handler)
 
+#user input handler
+def get_value_handler(message):
+    # telling the user his previous choice
+    choice = message.text
+    bot.reply_to(message, f"you choose {choice}... Insert the value you want to set by message. Please make sure it is an integer value.")
+    user_register_dict[message.chat.id][choice] = message.text
+    requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
+                      data={choice: extract_number(message.text)})
+    markup = types.ReplyKeyboardMarkup(row_width=2)
+    markup = generate_buttons(['Back'], markup)
+    message = bot.reply_to(message, f"{choice} was changed", reply_markup=markup)
+    bot.register_next_step_handler(message, main_menu_handler)
+
 
 # request to server to set new configuration
 def set_config(message):
     if message == 'sampling_rate':
-        requests.post(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()},
+        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
                       data={"sampling_rate": extract_number(message.text)})
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
         message = bot.reply_to(message, "sampling_rate was changed", reply_markup=markup)
         bot.register_next_step_handler(message, main_menu_handler)
     elif message == 'use_counter':
-        requests.post(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()},
+        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
                       data={"use_counter": extract_number(message.text)})
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
         message = bot.reply_to(message, "use_counter was changed", reply_markup=markup)
         bot.register_next_step_handler(message, main_menu_handler)
     elif message == 'used_offset':
-        requests.post(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()},
+        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
                       data={"used_offset": extract_number(message.text)})
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
         message = bot.reply_to(message, "used_offset was changed", reply_markup=markup)
         bot.register_next_step_handler(message, main_menu_handler)
     elif message == 'tare_timeout':
-        requests.post(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()},
+        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
                       data={"tare_timeout": extract_number(message.text)})
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
         message = bot.reply_to(message, "tare_timeout was changed", reply_markup=markup)
         bot.register_next_step_handler(message, main_menu_handler)
     elif message == 'danger_threshold':
-        requests.post(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()},
+        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
                       data={"danger_threshold": extract_number(message.text)})
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
         message = bot.reply_to(message, "danger_threshold was changed", reply_markup=markup)
         bot.register_next_step_handler(message, main_menu_handler)
     elif message == 'danger_counter':
-        requests.post(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()},
+        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
                       data={"danger_counter": extract_number(message.text)})
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
@@ -135,7 +148,7 @@ def set_config(message):
 
 # request to the server to get the current settings
 def get_settings():
-    settings = requests.get(f'http://{API_URI}/api/settings/v1', headers={"Authorization": login()})
+    settings = requests.get(f'{API_URI}/api/settings/v1', headers={"Authorization": login()})
     settings = settings.json()
     text_settings = f"""sampling_rate: {settings['sampling_rate']} \n
                     use_counter: {settings['use_counter']} \n  
