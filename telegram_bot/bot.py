@@ -85,67 +85,164 @@ def main_menu_handler(message):
 def get_value_handler(message):
     # telling the user his previous choice
     choice = message.text
-    bot.reply_to(message, f"you choose {choice}... Insert the value you want to set by message. Please make sure it is an integer value.")
-    user_register_dict[message.chat.id][choice] = message.text
-    requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
-                      data={choice: extract_number(message.text)})
     markup = types.ReplyKeyboardMarkup(row_width=2)
-    markup = generate_buttons(['Back'], markup)
-    message = bot.reply_to(message, f"{choice} was changed", reply_markup=markup)
-    bot.register_next_step_handler(message, main_menu_handler)
+    if choice == 'sampling_rate':
+        markup = generate_buttons(['Back'], markup)
+        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
+                        reply_markup=markup)
+        bot.register_next_step_handler(message, set_config_sampling_rate)
+    elif choice == 'use_counter':
+        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
+                        reply_markup=markup)
+        bot.register_next_step_handler(message, set_config_use_counter)
+    elif choice == 'used_offset':
+        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
+                        reply_markup=markup)
+        bot.register_next_step_handler(message, set_config_used_offset)
+    elif choice == 'tare_timeout':
+        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
+                        reply_markup=markup)
+        bot.register_next_step_handler(message, set_config_tare_timeout)
+    elif choice == 'danger_threshold':
+        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
+                        reply_markup=markup)
+        bot.register_next_step_handler(message, set_config_danger_threshold)
+    elif choice == 'danger_counter':
+        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
+                        reply_markup=markup)
+        bot.register_next_step_handler(message, set_config_danger_counter)
+    elif choice == 'back':
+        markup = generate_buttons(['Get Configuration', 'Set Configuration'], markup)
+        message = bot.reply_to(message, f"Going {choice} to main menu",
+                        reply_markup=markup)
+        bot.register_next_step_handler(message, main_menu_handler)
 
 
 # request to server to set new configuration
-def set_config(message):
-    if message == 'sampling_rate':
-        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
-                      data={"sampling_rate": extract_number(message.text)})
+def set_config_sampling_rate(message):
+    value = message.text.replace('/', '')
+    if value.isdigit():
+        print(value)
+        res = call_to_set('sampling_rate', value)
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Back'], markup)
-        message = bot.reply_to(message, "sampling_rate was changed", reply_markup=markup)
-        bot.register_next_step_handler(message, main_menu_handler)
-    elif message == 'use_counter':
-        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
-                      data={"use_counter": extract_number(message.text)})
-        markup = types.ReplyKeyboardMarkup(row_width=2)
-        markup = generate_buttons(['Back'], markup)
-        message = bot.reply_to(message, "use_counter was changed", reply_markup=markup)
-        bot.register_next_step_handler(message, main_menu_handler)
-    elif message == 'used_offset':
-        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
-                      data={"used_offset": extract_number(message.text)})
-        markup = types.ReplyKeyboardMarkup(row_width=2)
-        markup = generate_buttons(['Back'], markup)
-        message = bot.reply_to(message, "used_offset was changed", reply_markup=markup)
-        bot.register_next_step_handler(message, main_menu_handler)
-    elif message == 'tare_timeout':
-        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
-                      data={"tare_timeout": extract_number(message.text)})
-        markup = types.ReplyKeyboardMarkup(row_width=2)
-        markup = generate_buttons(['Back'], markup)
-        message = bot.reply_to(message, "tare_timeout was changed", reply_markup=markup)
-        bot.register_next_step_handler(message, main_menu_handler)
-    elif message == 'danger_threshold':
-        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
-                      data={"danger_threshold": extract_number(message.text)})
-        markup = types.ReplyKeyboardMarkup(row_width=2)
-        markup = generate_buttons(['Back'], markup)
-        message = bot.reply_to(message, "danger_threshold was changed", reply_markup=markup)
-        bot.register_next_step_handler(message, main_menu_handler)
-    elif message == 'danger_counter':
-        requests.post(f'{API_URI}/api/settings/v1', headers={"Authorization": login()},
-                      data={"danger_counter": extract_number(message.text)})
-        markup = types.ReplyKeyboardMarkup(row_width=2)
-        markup = generate_buttons(['Back'], markup)
-        message = bot.reply_to(message, "danger_counter was changed", reply_markup=markup)
-        bot.register_next_step_handler(message, main_menu_handler)
+        if res == 200:
+            message = bot.reply_to(message, "settings was changed", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+        else:
+            message= bot.reply_to(message, "something went wrong", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
     else:
         markup = types.ReplyKeyboardMarkup(row_width=2)
         markup = generate_buttons(['Set Configuration', 'Get Configuration'], markup)
         message = bot.reply_to(message, "I cant understand you. What you want to do?", reply_markup=markup)
         bot.register_next_step_handler(message, main_menu_handler)
 
+def set_config_use_counter(message):
+    value = message.text.replace('/', '')
+    if value.isdigit():
+        print(value)
+        res = call_to_set('use_counter', value)
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Back'], markup)
+        if res == 200:
+            message = bot.reply_to(message, "settings was changed", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+        else:
+            message= bot.reply_to(message, "something went wrong", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+    else:
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Set Configuration', 'Get Configuration'], markup)
+        message = bot.reply_to(message, "I cant understand you. What you want to do?", reply_markup=markup)
+        bot.register_next_step_handler(message, main_menu_handler)
 
+def set_config_used_offset(message):
+    value = message.text.replace('/', '')
+    if value.isdigit():
+        print(value)
+        res = call_to_set('used_offset', value)
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Back'], markup)
+        if res == 200:
+            message = bot.reply_to(message, "settings was changed", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+        else:
+            message= bot.reply_to(message, "something went wrong", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+    else:
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Set Configuration', 'Get Configuration'], markup)
+        message = bot.reply_to(message, "I cant understand you. What you want to do?", reply_markup=markup)
+        bot.register_next_step_handler(message, main_menu_handler)
+
+def set_config_tare_timeout(message):
+    value = message.text.replace('/', '')
+    if value.isdigit():
+        print(value)
+        res = call_to_set('tare_timeout', value)
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Back'], markup)
+        if res == 200:
+            message = bot.reply_to(message, "settings was changed", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+        else:
+            message= bot.reply_to(message, "something went wrong", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+    else:
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Set Configuration', 'Get Configuration'], markup)
+        message = bot.reply_to(message, "I cant understand you. What you want to do?", reply_markup=markup)
+        bot.register_next_step_handler(message, main_menu_handler)
+
+def set_config_danger_threshold(message):
+    value = message.text.replace('/', '')
+    if value.isdigit():
+        print(value)
+        res = call_to_set('danger_threshold', value)
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Back'], markup)
+        if res == 200:
+            message = bot.reply_to(message, "settings was changed", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+        else:
+            message= bot.reply_to(message, "something went wrong", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+    else:
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Set Configuration', 'Get Configuration'], markup)
+        message = bot.reply_to(message, "I cant understand you. What you want to do?", reply_markup=markup)
+        bot.register_next_step_handler(message, main_menu_handler)
+
+def set_config_danger_counter(message):
+    value = message.text.replace('/', '')
+    if value.isdigit():
+        print(value)
+        res = call_to_set('danger_counter', value)
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Back'], markup)
+        if res == 200:
+            message = bot.reply_to(message, "settings was changed", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+        else:
+            message= bot.reply_to(message, "something went wrong", reply_markup=markup)
+            bot.register_next_step_handler(message, main_menu_handler)
+    else:
+        markup = types.ReplyKeyboardMarkup(row_width=2)
+        markup = generate_buttons(['Set Configuration', 'Get Configuration'], markup)
+        message = bot.reply_to(message, "I cant understand you. What you want to do?", reply_markup=markup)
+        bot.register_next_step_handler(message, main_menu_handler)
+
+def call_to_set(what, value):
+    settings = requests.get(f'{API_URI}/api/settings/v1', headers={"Authorization": login()})
+    settings = settings.json()
+    settings[what] = int(value)
+    print(settings)
+    snd = json.dumps(settings)
+    response = requests.put(f'{API_URI}/api/settings/v1', headers={"Authorization": login(), "accept": "application/json", "Content-Type": "application/json"},
+                      data=snd)
+    print (response.content)
+    return response.status_code
 # request to the server to get the current settings
 def get_settings():
     settings = requests.get(f'{API_URI}/api/settings/v1', headers={"Authorization": login()})
