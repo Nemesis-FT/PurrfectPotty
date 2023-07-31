@@ -24,7 +24,7 @@ class ActionEdit(base.Model):
 
 
 class RssiAction(ActionEdit):
-    rssi_str: float
+    rssi_str: int
 
 
 class LitterUsed(ActionEdit):

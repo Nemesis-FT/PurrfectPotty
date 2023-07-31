@@ -1,24 +1,46 @@
-#include <WiFi.h>
+#include <WiFi101.h>
 #include <PubSubClient.h>
+#include "HX711.h"
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+#include <HttpClient.h>
+#include <ArduinoJson.h>
 
+// MQTT Configuration
 const char* ssid = "";
 const char* password = "";
-
 const char *broker = "iot.fermitech.info";
 const char *topic = "esp32/config";
 const char *mqtt_username = "";
 const char *mqtt_password = "";
 const int port = 1883;
+WiFiClient wifiClient;
+PubSubClient client(wifiClient);
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+// NTP Configuration
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
 
+// Scale configuration
+HX711 scale(5, 4);
+float calibration_factor = 13000;
+
+// DataProxy auth
+const char *thing_token = "";
+const char *http_address = "";
+const int http_port = 8000;
+
+// Device configurable parameters
 int sampling_rate = 1500;
 int use_counter = 10;
-int used_offset = 10;
-int tare_timeout = 1000;
-int danger_threshold = 10;
+int used_offset = 1000;
+int tare_timeout = 50;
+int danger_threshold = 1500;
 int danger_counter = 10;
+
+// Flags
+bool in_use = false;
+bool dirty = false;
 
 void unpacker(char* str){
   char *ptrs[6];
@@ -41,7 +63,6 @@ void unpacker(char* str){
 void callback(char *topic, byte *payload, unsigned int length) {
   Serial.print("Message arrived in topic: ");
   Serial.println(topic);
-  Serial.print("Message:");
   char str_array[length];
   for (int i = 0; i < length; i++) {
       str_array[i] = (char) payload[i];
@@ -53,7 +74,6 @@ void callback(char *topic, byte *payload, unsigned int length) {
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
-  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   Serial.println("Attempting connection...");
   while(WiFi.status() != WL_CONNECTED){
@@ -67,7 +87,7 @@ void setup() {
   client.setCallback(callback);
   while (!client.connected()){
     String client_id = "esp32-client-";
-    client_id += String(WiFi.macAddress());
+    client_id += "123";
     if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
         Serial.println("iot.fermitech.info broker connected");
     } else {
@@ -77,15 +97,110 @@ void setup() {
     }
   }
   client.subscribe(topic);
+  
+  timeClient.begin();
+
+  scale.set_scale();
+  scale.tare();  //Reset the scale to 0
+  long zero_factor = scale.read_average(); //Get a baseline reading
+  Serial.print("Zero factor: "); //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
+  Serial.println(zero_factor);
 }
 
+int get_scale(){
+  scale.set_scale(calibration_factor); //Adjust to this calibration factor
+  
+  //Serial.println(timeClient.getFormattedTime());
+  float units = scale.get_units(10);
+  if (units < 0)
+  {
+    units = 0.00;
+  }
+  return int(units*1000);
+}
 
+void print_weight(float units){
+  Serial.print(units);
+  Serial.print(" kg"); 
+  Serial.print(" calibration_factor: ");
+  Serial.print(calibration_factor);
+  Serial.println();
+}
+
+void send_rssi(){
+  int rssi = WiFi.RSSI();
+  timeClient.update();
+  if(wifiClient.connect(http_address, http_port)){
+    HttpClient http(wifiClient, http_address, http_port);
+    StaticJsonDocument<200> doc;
+    doc["thing_token"] = "pippo";
+    doc["timestamp"] = "1234";
+    doc["rssi_str"] = rssi;
+    String data = "{\"thing_token\":\"";
+    data.concat(thing_token);
+    data.concat("\", \"timestamp\":\"");
+    data.concat(timeClient.getEpochTime());
+    data.concat("\", \"rssi_str\":");
+    data.concat(rssi);
+    data.concat("}");
+
+    http.post("/api/actions/v1/rssi", "application/json",data);
+    int statusCode = http.responseStatusCode();
+  }
+}
+
+// Counters
+int use_c = 0;
+int warning_c = 0;
+
+// Data
+int litter_weight = 0;
 
 void loop() {
+  // Get latest configuration from MQTT broker
   client.loop();
-  digitalWrite(LED_BUILTIN, HIGH);  // turn the LED on (HIGH is the voltage level)
-  delay(1000);                      // wait for a second
-  digitalWrite(LED_BUILTIN, LOW);   // turn the LED off by making the voltage LOW
-  delay(1000);                      // wait for a second
-  Serial.println(sampling_rate);
+  // Run measurement
+  delay(sampling_rate);
+  int units = get_scale();
+  // Check if the weight is above used_offset (in grams)
+  send_rssi();
+  if(units > used_offset+litter_weight+500){
+    warning_c = 0;
+    Serial.println("Units > used_offset+litter_weight");
+    use_c++;
+    Serial.println(use_c++);
+    if(use_c < use_counter){
+      Serial.println("  use_c < use_counter");
+      return;
+    }
+    if(use_c < tare_timeout){
+      Serial.println("  use_c < tare_timeout");
+      in_use = true;
+      return;
+    }
+    Serial.println("  use_c > tare_timeout");
+    in_use = false;
+    litter_weight = units;
+    dirty = false;
+  }
+  else{
+    Serial.println("Units < used_offset+litter_weight");
+    use_c = 0;
+    if(in_use){
+      Serial.println("  Litterbox has been used!");
+      in_use = false;
+    }
+    if(units < danger_threshold){
+      Serial.println("  Litterbox below the threshold");
+      warning_c++;
+      if(warning_c>=danger_counter){
+        Serial.println("    Litterbox empty!");
+        warning_c = 0;
+        if(!dirty){
+          dirty = true;
+          Serial.println("      Chiamo le guardie");
+        }
+      }
+    }
+  }
 }
