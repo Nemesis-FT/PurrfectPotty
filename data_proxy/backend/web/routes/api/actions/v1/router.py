@@ -36,7 +36,7 @@ def litter_usage_action(*, data: LitterUsed, tasker: BackgroundTasks):
         raise Denied
     save_to_influx({'value': 1}, "litter_usage")
     tasker.add_task(logger, f"LU;{datetime.now().timestamp()};{data.timestamp}\n")
-    tasker.add_task(telegram_send_message, f"""
+    telegram_send_message(f"""
     🔈<b> Litterbox usage detected! </b>
     """)
     return CREATED
@@ -50,7 +50,7 @@ def litter_alarm_action(*, data: LitterEmpty, tasker: BackgroundTasks):
         raise Denied
     save_to_influx({'value': 1}, "litter_alarm")
     tasker.add_task(logger, f"LA;{datetime.now().timestamp()};{data.timestamp}\n")
-    tasker.add_task(telegram_send_message, f"""
+    telegram_send_message(f"""
     🚨<b> Warning! Litterbox almost empty! </b> 🚨
     """)
     return CREATED

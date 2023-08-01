@@ -62,4 +62,4 @@ def telegram_send_message(message):
         requests.post(
             f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage?chat_id={CHAT_ID}&text={message}&parse_mode=html")
     except Exception as e:
-        pass
+        print(e)
