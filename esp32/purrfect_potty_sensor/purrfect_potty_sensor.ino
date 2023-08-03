@@ -5,7 +5,6 @@
 #include <WiFiUdp.h>
 #include <HttpClient.h>
 #include <ArduinoJson.h>
-
 // MQTT Configuration
 const char* ssid = "";
 const char* password = "";
@@ -14,8 +13,9 @@ const char *topic = "esp32/config";
 const char *mqtt_username = "";
 const char *mqtt_password = "";
 const int port = 1883;
-WiFiClient wifiClient;
-PubSubClient client(wifiClient);
+WiFiClient wifiClient1;
+WiFiClient wifiClient2;
+PubSubClient mqttClient(wifiClient1);
 
 // NTP Configuration
 WiFiUDP ntpUDP;
@@ -28,14 +28,14 @@ float calibration_factor = 13000;
 // DataProxy auth
 const char *thing_token = "";
 const char *http_address = "";
-const int http_port = 8000;
+const int http_port = 8030;
 
 // Device configurable parameters
 int sampling_rate = 1500;
 int use_counter = 10;
-int used_offset = 1000;
+int used_offset = 3000;
 int tare_timeout = 50;
-int danger_threshold = 1500;
+int danger_threshold = 4500;
 int danger_counter = 10;
 
 // Flags
@@ -75,42 +75,45 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
   Serial.begin(9600);
   WiFi.begin(ssid, password);
+  
   Serial.println("Attempting connection...");
   while(WiFi.status() != WL_CONNECTED){
         Serial.print(".");
         delay(100);
   }
+  delay(1000);
+  
   Serial.println("\nConnected to the WiFi network");
-  Serial.print("Local ESP32 IP: ");
+  Serial.print("Local Arduino IP: ");
   Serial.println(WiFi.localIP());
-  client.setServer(broker, port);
-  client.setCallback(callback);
-  while (!client.connected()){
-    String client_id = "esp32-client-";
+
+  mqttClient.setServer(broker, port);
+  mqttClient.setCallback(callback);
+  while (!mqttClient.connected()){
+    String client_id = "arduino-client-";
     client_id += "123";
-    if (client.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
+    if (mqttClient.connect(client_id.c_str(), mqtt_username, mqtt_password)) {
         Serial.println("iot.fermitech.info broker connected");
     } else {
         Serial.print("failed with state ");
-        Serial.print(client.state());
+        Serial.print(mqttClient.state());
         delay(2000);
     }
   }
-  client.subscribe(topic);
+  mqttClient.subscribe(topic);
   
-  timeClient.begin();
+  timeClient.begin(); 
 
   scale.set_scale();
   scale.tare();  //Reset the scale to 0
   long zero_factor = scale.read_average(); //Get a baseline reading
   Serial.print("Zero factor: "); //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
   Serial.println(zero_factor);
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 int get_scale(){
   scale.set_scale(calibration_factor); //Adjust to this calibration factor
-  
-  //Serial.println(timeClient.getFormattedTime());
   float units = scale.get_units(10);
   if (units < 0)
   {
@@ -129,23 +132,31 @@ void print_weight(float units){
 
 void send_rssi(){
   int rssi = WiFi.RSSI();
-  timeClient.update();
-  if(wifiClient.connect(http_address, http_port)){
-    HttpClient http(wifiClient, http_address, http_port);
-    StaticJsonDocument<200> doc;
-    doc["thing_token"] = "pippo";
-    doc["timestamp"] = "1234";
-    doc["rssi_str"] = rssi;
+  if(wifiClient2.connect(http_address, http_port)){
+    HttpClient http(wifiClient2, http_address, http_port);
     String data = "{\"thing_token\":\"";
     data.concat(thing_token);
     data.concat("\", \"timestamp\":\"");
+    timeClient.update();
     data.concat(timeClient.getEpochTime());
     data.concat("\", \"rssi_str\":");
     data.concat(rssi);
     data.concat("}");
-
     http.post("/api/actions/v1/rssi", "application/json",data);
-    int statusCode = http.responseStatusCode();
+  }
+}
+
+void send_notification(String endpoint){
+  if(wifiClient2.connect(http_address, http_port)){
+    HttpClient http(wifiClient2, http_address, http_port);
+    String data = "{\"thing_token\":\"";
+    data.concat(thing_token);
+    data.concat("\", \"timestamp\":\"");
+    timeClient.update();
+    data.concat(timeClient.getEpochTime());
+    data.concat("\"}");
+
+    http.post(endpoint, "application/json",data);
   }
 }
 
@@ -155,20 +166,26 @@ int warning_c = 0;
 
 // Data
 int litter_weight = 0;
+long prev_millis = 0;
 
 void loop() {
   // Get latest configuration from MQTT broker
-  client.loop();
+  mqttClient.loop();
   // Run measurement
   delay(sampling_rate);
-  int units = get_scale();
-  // Check if the weight is above used_offset (in grams)
   send_rssi();
+  String msg = "Pesata: ";
+  int units = get_scale();
+  msg.concat(units);
+  msg.concat(" Peso sabbia: ");
+  msg.concat(litter_weight);
+  Serial.println(msg);
+  // Check if the weight is above used_offset (in grams)
   if(units > used_offset+litter_weight+500){
     warning_c = 0;
     Serial.println("Units > used_offset+litter_weight");
     use_c++;
-    Serial.println(use_c++);
+    Serial.println(use_c);
     if(use_c < use_counter){
       Serial.println("  use_c < use_counter");
       return;
@@ -188,6 +205,7 @@ void loop() {
     use_c = 0;
     if(in_use){
       Serial.println("  Litterbox has been used!");
+      send_notification("/api/actions/v1/litter_usage");
       in_use = false;
     }
     if(units < danger_threshold){
@@ -197,8 +215,9 @@ void loop() {
         Serial.println("    Litterbox empty!");
         warning_c = 0;
         if(!dirty){
+          send_notification("/api/actions/v1/litter_alarm");
           dirty = true;
-          Serial.println("      Chiamo le guardie");
+          Serial.println("      Notification sent!");
         }
       }
     }
