@@ -5,10 +5,12 @@
 #include <WiFiUdp.h>
 #include <HttpClient.h>
 #include <ArduinoJson.h>
+#include <DHT11.h>
+
 // MQTT Configuration
 const char* ssid = "";
 const char* password = "";
-const char *broker = "iot.fermitech.info";
+const char *broker = "";
 const char *topic = "esp32/config";
 const char *mqtt_username = "";
 const char *mqtt_password = "";
@@ -25,22 +27,21 @@ NTPClient timeClient(ntpUDP);
 HX711 scale(5, 4);
 float calibration_factor = 13000;
 
+// DHT11 configuration
+DHT11 dht11(6);
+float temperature;
+
 // DataProxy auth
-const char *thing_token = "";
+const char *thing_token = "pippo";
 const char *http_address = "";
-const int http_port = 8030;
+const int http_port = 8000;
 
 // Device configurable parameters
 int sampling_rate = 1500;
 int use_counter = 10;
 int used_offset = 3000;
-int tare_timeout = 50;
-int danger_threshold = 4500;
-int danger_counter = 10;
+int tare_timeout = 20;
 
-// Flags
-bool in_use = false;
-bool dirty = false;
 
 void unpacker(char* str){
   char *ptrs[6];
@@ -56,8 +57,6 @@ void unpacker(char* str){
   use_counter = atoi(ptrs[1]);
   used_offset = atoi(ptrs[2]);
   tare_timeout = atoi(ptrs[3]);
-  danger_threshold = atoi(ptrs[4]);
-  danger_counter = atoi(ptrs[5]);
 }
 
 void callback(char *topic, byte *payload, unsigned int length) {
@@ -146,6 +145,22 @@ void send_rssi(){
   }
 }
 
+void send_temp(float temp){
+  int rssi = WiFi.RSSI();
+  if(wifiClient2.connect(http_address, http_port)){
+    HttpClient http(wifiClient2, http_address, http_port);
+    String data = "{\"thing_token\":\"";
+    data.concat(thing_token);
+    data.concat("\", \"timestamp\":\"");
+    timeClient.update();
+    data.concat(timeClient.getEpochTime());
+    data.concat("\", \"temperature\":");
+    data.concat(temp);
+    data.concat("}");
+    http.post("/api/actions/v1/temperature", "application/json",data);
+  }
+}
+
 void send_notification(String endpoint){
   if(wifiClient2.connect(http_address, http_port)){
     HttpClient http(wifiClient2, http_address, http_port);
@@ -162,11 +177,15 @@ void send_notification(String endpoint){
 
 // Counters
 int use_c = 0;
-int warning_c = 0;
+int tare_c = 0;
 
 // Data
 int litter_weight = 0;
 long prev_millis = 0;
+
+// Flags
+bool in_use = false;
+bool dirty = false;
 
 void loop() {
   // Get latest configuration from MQTT broker
@@ -174,52 +193,47 @@ void loop() {
   // Run measurement
   delay(sampling_rate);
   send_rssi();
+  temperature = dht11.readTemperature();
+  send_temp(temperature);
+  String tmp = "Temperatura: ";
+  tmp.concat(temperature);
+  tmp.concat(" C");
+  Serial.println(tmp);
   String msg = "Pesata: ";
   int units = get_scale();
   msg.concat(units);
   msg.concat(" Peso sabbia: ");
   msg.concat(litter_weight);
   Serial.println(msg);
-  // Check if the weight is above used_offset (in grams)
-  if(units > used_offset+litter_weight+500){
-    warning_c = 0;
-    Serial.println("Units > used_offset+litter_weight");
+  if(units > used_offset){
+    Serial.println("Units > used_offset");
+    
     use_c++;
-    Serial.println(use_c);
+    if(tare_c>10){
+      tare_c=tare_c-10;
+    }
     if(use_c < use_counter){
       Serial.println("  use_c < use_counter");
       return;
     }
-    if(use_c < tare_timeout){
-      Serial.println("  use_c < tare_timeout");
+    if(use_c > use_counter){
       in_use = true;
+
+      Serial.println("  !!!");
       return;
     }
-    Serial.println("  use_c > tare_timeout");
-    in_use = false;
-    litter_weight = units;
-    dirty = false;
+  }
+  else if(!in_use){
+    tare_c++;
+    if(tare_c>tare_timeout){
+      scale.tare();
+      Serial.println("Tare set!");
+      tare_c = 0;
+    }
   }
   else{
-    Serial.println("Units < used_offset+litter_weight");
-    use_c = 0;
-    if(in_use){
-      Serial.println("  Litterbox has been used!");
-      send_notification("/api/actions/v1/litter_usage");
-      in_use = false;
-    }
-    if(units < danger_threshold){
-      Serial.println("  Litterbox below the threshold");
-      warning_c++;
-      if(warning_c>=danger_counter){
-        Serial.println("    Litterbox empty!");
-        warning_c = 0;
-        if(!dirty){
-          send_notification("/api/actions/v1/litter_alarm");
-          dirty = true;
-          Serial.println("      Notification sent!");
-        }
-      }
-    }
+    Serial.println("  Litterbox has been used!");
+    send_notification("/api/actions/v1/litter_usage");
+    in_use = false;
   }
 }

@@ -23,9 +23,7 @@ def setting_get(*, current_user=Depends(get_current_user), config=Depends(get_cu
     return SettingsEdit(sampling_rate=config["litter"]["sampling_rate"]["value"],
                         use_counter=config["litter"]["use_counter"]["value"],
                         used_offset=config["litter"]["used_offset"]["value"],
-                        tare_timeout=config["litter"]["tare_timeout"]["value"],
-                        danger_threshold=config["litter"]["danger_threshold"]["value"],
-                        danger_counter=config["litter"]["danger_counter"]["value"])
+                        tare_timeout=config["litter"]["tare_timeout"]["value"])
 
 
 @router.put("/",
@@ -50,14 +48,6 @@ def setting_update(*, data: SettingsEdit, tasker: BackgroundTasks, current_user=
                 "value": data.tare_timeout,
                 "schema": "the number of consecutive readings that need to be inside a certain tolerance to tare the device (since we want to remove used sand, this allows us to re-evaluate the amount of litter inside the litterbox)."
             },
-            "danger_threshold": {
-                "value": data.danger_threshold,
-                "schema": "the threshold to generate the 'empty litterbox' alarm."
-            },
-            "danger_counter": {
-                "value": data.danger_counter,
-                "schema": "the number of consecutive 'empty litterbox' readings that will raise the alarm."
-            }
         }
     }
     save_new_config(new)

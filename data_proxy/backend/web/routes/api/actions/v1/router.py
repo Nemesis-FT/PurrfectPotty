@@ -2,7 +2,7 @@ import fastapi.routing
 import starlette.responses
 from data_proxy.backend.web.configuration import THING_TOKEN
 from data_proxy.backend.web.errors import Denied
-from data_proxy.backend.web.models.edit import RssiAction, LitterUsed, LitterEmpty
+from data_proxy.backend.web.models.edit import RssiAction, LitterUsed, LitterEmpty, TempAction
 from datetime import datetime
 from fastapi import BackgroundTasks
 from data_proxy.backend.web.utils import save_to_influx, logger, telegram_send_message
@@ -39,6 +39,15 @@ def litter_usage_action(*, data: LitterUsed, tasker: BackgroundTasks):
     telegram_send_message(f"""
     🔈<b> Litterbox usage detected! </b>
     """)
+    return CREATED
+
+
+@router.post("/temperature", summary="Send temperature from sensor", status_code=201)
+def temperature_action(*, data: TempAction, tasker: BackgroundTasks):
+    if data.thing_token != THING_TOKEN:
+        raise Denied
+    save_to_influx({'value': float(data.temperature)}, "temperature")
+    tasker.add_task(logger, f"TMP;{datetime.now().timestamp()};{data.timestamp}\n")
     return CREATED
 
 

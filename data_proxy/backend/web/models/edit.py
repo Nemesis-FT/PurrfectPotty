@@ -14,13 +14,15 @@ class SettingsEdit(base.Model):
     use_counter: int
     used_offset: int
     tare_timeout: int
-    danger_threshold: int
-    danger_counter: int
 
 
 class ActionEdit(base.Model):
     thing_token: str
     timestamp: str
+
+
+class TempAction(ActionEdit):
+    temperature: str
 
 
 class RssiAction(ActionEdit):

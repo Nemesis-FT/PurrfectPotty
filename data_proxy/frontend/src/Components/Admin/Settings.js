@@ -28,8 +28,6 @@ export default function Settings(props) {
                 use_counter: uc,
                 used_offset: usc,
                 tare_timeout: tt,
-                danger_threshold: dt,
-                danger_counter: dc
             })
         });
         if (response.status === 200) {
@@ -58,16 +56,7 @@ export default function Settings(props) {
                         </Form.Field>
                         <Form.Field onSimpleChange={e => setTt(e)} value={tt}
                                     required={true}
-                                    label={"Tare timeout (ms)"}>
-                        </Form.Field>
-                    </Form.Row>
-                    <Form.Row>
-                        <Form.Field onSimpleChange={e => setDt(e)} value={dt} required={true}
-                                    label={"Danger threshold (kg)"}>
-                        </Form.Field>
-                        <Form.Field onSimpleChange={e => setDc(e)} value={dc}
-                                    required={true}
-                                    label={"Danger counter"}>
+                                    label={"Tare timeout (cycles)"}>
                         </Form.Field>
                     </Form.Row>
                 </Chapter>
