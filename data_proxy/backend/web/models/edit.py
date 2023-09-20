@@ -18,7 +18,6 @@ class SettingsEdit(base.Model):
 
 class ActionEdit(base.Model):
     thing_token: str
-    timestamp: str
 
 
 class TempAction(ActionEdit):
@@ -29,9 +28,9 @@ class RssiAction(ActionEdit):
     rssi_str: int
 
 
+class LatencyAction(ActionEdit):
+    latency: float
+
+
 class LitterUsed(ActionEdit):
-    pass
-
-
-class LitterEmpty(ActionEdit):
     pass

@@ -53,7 +53,7 @@ def save_to_influx(data: dict, measurement):
 
 
 def logger(data):
-    with open("logfile.csv", "a+") as file:
+    with open("influxtimes.csv", "a+") as file:
         file.write(data)
 
 

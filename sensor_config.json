@@ -1,1 +1,20 @@
-{"litter": {"sampling_rate": {"value": 1500, "schema": "value in ms that determines the frequency in which measures are taken"}, "use_counter": {"value": 15, "schema": "the number of consecutive readings that are enough to conclude that the litterbox is getting used by a pet"}, "used_offset": {"value": 1000, "schema": "the offset in weight that may trigger a 'litterbox in use' event (the minimum weight of the cat)"}, "tare_timeout": {"value": 20, "schema": "the number of consecutive readings that need to be inside a certain tolerance to tare the device (since we want to remove used sand, this allows us to re-evaluate the amount of litter inside the litterbox)."}}}
+{
+  "litter": {
+    "sampling_rate": {
+      "value": 1000,
+      "schema": "value in ms that determines the frequency in which measures are taken"
+    },
+    "use_counter": {
+      "value": 10,
+      "schema": "the number of consecutive readings that are enough to conclude that the litterbox is getting used by a pet"
+    },
+    "used_offset": {
+      "value": 3000,
+      "schema": "the offset in weight that may trigger a 'litterbox in use' event (the minimum weight of the cat)"
+    },
+    "tare_timeout": {
+      "value": 20,
+      "schema": "the number of consecutive readings that need to be inside a certain tolerance to tare the device (since we want to remove used sand, this allows us to re-evaluate the amount of litter inside the litterbox)."
+    }
+  }
+}

@@ -1,27 +1,39 @@
 #include <WiFi101.h>
 #include <PubSubClient.h>
 #include "HX711.h"
-#include <NTPClient.h>
-#include <WiFiUdp.h>
 #include <HttpClient.h>
-#include <ArduinoJson.h>
 #include <DHT11.h>
+#include <WDTZero.h>
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+  char top;
+#ifdef __arm__
+  return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+  return &top - __brkval;
+#else  // __arm__
+  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
 
 // MQTT Configuration
 const char* ssid = "";
 const char* password = "";
 const char *broker = "";
-const char *topic = "esp32/config";
+const char *topic = "";
 const char *mqtt_username = "";
 const char *mqtt_password = "";
 const int port = 1883;
 WiFiClient wifiClient1;
 WiFiClient wifiClient2;
 PubSubClient mqttClient(wifiClient1);
-
-// NTP Configuration
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
 
 // Scale configuration
 HX711 scale(5, 4);
@@ -32,7 +44,7 @@ DHT11 dht11(6);
 float temperature;
 
 // DataProxy auth
-const char *thing_token = "pippo";
+const char *thing_token = "";
 const char *http_address = "";
 const int http_port = 8000;
 
@@ -42,6 +54,13 @@ int use_counter = 10;
 int used_offset = 3000;
 int tare_timeout = 20;
 
+// Watchdog setup
+
+WDTZero MyWatchDoggy;
+bool keepAlive = true;
+
+// Debug setup
+bool logLatency = true;
 
 void unpacker(char* str){
   char *ptrs[6];
@@ -72,7 +91,11 @@ void callback(char *topic, byte *payload, unsigned int length) {
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(7, OUTPUT);
+  digitalWrite(7, HIGH);
   Serial.begin(9600);
+  MyWatchDoggy.attachShutdown(resetFunction);
+  MyWatchDoggy.setup(WDT_SOFTCYCLE8S);
   WiFi.begin(ssid, password);
   
   Serial.println("Attempting connection...");
@@ -80,6 +103,7 @@ void setup() {
         Serial.print(".");
         delay(100);
   }
+  MyWatchDoggy.clear();
   delay(1000);
   
   Serial.println("\nConnected to the WiFi network");
@@ -100,14 +124,16 @@ void setup() {
     }
   }
   mqttClient.subscribe(topic);
-  
-  timeClient.begin(); 
+  MyWatchDoggy.clear();
 
+  Serial.println("Setting up the scale...");
   scale.set_scale();
   scale.tare();  //Reset the scale to 0
   long zero_factor = scale.read_average(); //Get a baseline reading
   Serial.print("Zero factor: "); //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
   Serial.println(zero_factor);
+  MyWatchDoggy.clear();
+  
   digitalWrite(LED_BUILTIN, HIGH);
 }
 
@@ -129,55 +155,100 @@ void print_weight(float units){
   Serial.println();
 }
 
+unsigned long time = 0;
+int counter = 0;
+
+
+void send_latency(){
+
+}
+
+
+void report_time(){
+  Serial.print("Latenza su ");
+  Serial.print(counter);
+  Serial.print(": ");
+  Serial.print(time/counter);
+  Serial.println(" ms.");
+  if(counter >= 10){
+    if(wifiClient2.connect(http_address, http_port)){
+        HttpClient http(wifiClient2, http_address, http_port);
+        String data = "{\"thing_token\":\"";
+        data.concat(thing_token);
+        data.concat("\", \"latency\":");
+        data.concat(time/counter);
+        data.concat("}");
+        http.post("/api/actions/v1/latency", "application/json",data);
+    }
+    time = 0;
+    counter = 0;
+  }
+}
+
 void send_rssi(){
   int rssi = WiFi.RSSI();
+  Serial.print("RSSI: ");
+  Serial.println(rssi);
+  if(rssi==-100){
+    keepAlive = false;
+  }
+  unsigned long start_time = millis();
   if(wifiClient2.connect(http_address, http_port)){
     HttpClient http(wifiClient2, http_address, http_port);
     String data = "{\"thing_token\":\"";
     data.concat(thing_token);
-    data.concat("\", \"timestamp\":\"");
-    timeClient.update();
-    data.concat(timeClient.getEpochTime());
     data.concat("\", \"rssi_str\":");
     data.concat(rssi);
     data.concat("}");
     http.post("/api/actions/v1/rssi", "application/json",data);
+    unsigned long end_time = millis();
+    counter++;
+    time+=end_time-start_time;
   }
+
 }
 
 void send_temp(float temp){
-  int rssi = WiFi.RSSI();
+  unsigned long start_time = millis();
   if(wifiClient2.connect(http_address, http_port)){
     HttpClient http(wifiClient2, http_address, http_port);
     String data = "{\"thing_token\":\"";
     data.concat(thing_token);
-    data.concat("\", \"timestamp\":\"");
-    timeClient.update();
-    data.concat(timeClient.getEpochTime());
     data.concat("\", \"temperature\":");
     data.concat(temp);
     data.concat("}");
     http.post("/api/actions/v1/temperature", "application/json",data);
+    unsigned long end_time = millis();
+    counter++;
+    time+=end_time-start_time;
   }
 }
 
 void send_notification(String endpoint){
+  unsigned long start_time = millis();
   if(wifiClient2.connect(http_address, http_port)){
     HttpClient http(wifiClient2, http_address, http_port);
     String data = "{\"thing_token\":\"";
     data.concat(thing_token);
-    data.concat("\", \"timestamp\":\"");
-    timeClient.update();
-    data.concat(timeClient.getEpochTime());
     data.concat("\"}");
 
     http.post(endpoint, "application/json",data);
+    unsigned long end_time = millis();
+    counter++;
+    time+=end_time-start_time;
   }
+}
+
+void resetFunction(){
+  Serial.println("RESET SIGNAL");
 }
 
 // Counters
 int use_c = 0;
 int tare_c = 0;
+int cooldown_c;
+
+int cooldown_t = 5;
 
 // Data
 int litter_weight = 0;
@@ -187,11 +258,27 @@ long prev_millis = 0;
 bool in_use = false;
 bool dirty = false;
 
+
+// Timers
+unsigned long end_loop = 0;
+unsigned long start_loop = 0;
+
 void loop() {
   // Get latest configuration from MQTT broker
+  end_loop = millis();
+  Serial.print("Elapsed time since last loop: ");
+  Serial.println(end_loop-start_loop);
+  Serial.print("Free memory: ");
+  int mem = freeMemory();
+  Serial.println(mem, DEC);
   mqttClient.loop();
   // Run measurement
   delay(sampling_rate);
+  if(keepAlive){
+    MyWatchDoggy.clear();
+  }
+  
+  start_loop = millis();
   send_rssi();
   temperature = dht11.readTemperature();
   send_temp(temperature);
@@ -207,7 +294,6 @@ void loop() {
   Serial.println(msg);
   if(units > used_offset){
     Serial.println("Units > used_offset");
-    
     use_c++;
     if(tare_c>10){
       tare_c=tare_c-10;
@@ -218,7 +304,7 @@ void loop() {
     }
     if(use_c > use_counter){
       in_use = true;
-
+      cooldown_c = 0;
       Serial.println("  !!!");
       return;
     }
@@ -232,8 +318,17 @@ void loop() {
     }
   }
   else{
-    Serial.println("  Litterbox has been used!");
-    send_notification("/api/actions/v1/litter_usage");
-    in_use = false;
+    if(cooldown_c < cooldown_t){
+      cooldown_c++;
+    }
+    else{
+      Serial.println("  Litterbox has been used!");
+      send_notification("/api/actions/v1/litter_usage");
+      in_use = false;
+      use_c = 0;
+      cooldown_c = 0;
+    }
+
   }
+  report_time();
 }
