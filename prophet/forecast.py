@@ -2,7 +2,7 @@ import pandas as pd
 from prophet import Prophet
 import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
-from data_proxy.backend.web.configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL, BOT_TOKEN, CHAT_ID
+from configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL, BOT_TOKEN, CHAT_ID
 import datetime
 import requests
 

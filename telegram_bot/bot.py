@@ -240,9 +240,9 @@ def get_settings():
     settings = requests.get(f'{API_URI}/api/settings/v1', headers={"Authorization": login()})
     settings = settings.json()
     text_settings = f"""sampling_rate: {settings['sampling_rate']} \n
-    use_counter: {settings['use_counter']} \n  
-    used_offset: {settings['used_offset']} \n
-    tare_timeout: {settings['tare_timeout']} \n"""
+use_counter: {settings['use_counter']} \n  
+used_offset: {settings['used_offset']} \n
+tare_timeout: {settings['tare_timeout']} \n"""
     return text_settings
 
 
