@@ -52,11 +52,6 @@ def save_to_influx(data: dict, measurement):
     writer.close()
 
 
-def logger(data):
-    with open("influxtimes.csv", "a+") as file:
-        file.write(data)
-
-
 def telegram_send_message(message):
     try:
         requests.post(

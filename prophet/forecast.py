@@ -2,8 +2,9 @@ import pandas as pd
 from prophet import Prophet
 import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
-from data_proxy.backend.web.configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL
+from data_proxy.backend.web.configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL, BOT_TOKEN, CHAT_ID
 import datetime
+import requests
 
 bucket = IFD_BUCKET
 org = IFD_ORG
@@ -53,19 +54,28 @@ def get_ifd_client():
     return client
 
 
+def telegram_send_message(message):
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage?chat_id={CHAT_ID}&text={message}&parse_mode=html")
+    except Exception as e:
+        print(e)
+
+
 if __name__ == "__main__":
-    predictions = {"temperature": [], "latency": []}
+    predictions = {"temperature": "temperatura", "latency": "latenza"}
     client = get_ifd_client()
     for key in predictions.keys():
         pred: pd.DataFrame = get_forecast(6, key)
         write_api = client.write_api(write_options=SYNCHRONOUS)
+        res_string = f"Predizione di {predictions[key]} nelle prossime 6 ore:\n"
         for idx in range(len(pred)):
-            print("OK")
             time, elem = pred.iloc[idx]
             p = influxdb_client.Point(key)
             p.field("value", elem)
             p.time(time-datetime.timedelta(hours=2))
             write_api.write(bucket="ppredict", org=org, record=p)
+            res_string += f"{round(elem,2)}\n"
         write_api.close()
+        telegram_send_message(res_string)
 
-    print(predictions)

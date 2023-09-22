@@ -4,6 +4,7 @@
 #include <HttpClient.h>
 #include <DHT11.h>
 #include <WDTZero.h>
+#include <FlashStorage.h>
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict
@@ -62,6 +63,14 @@ bool keepAlive = true;
 // Debug setup
 bool logLatency = true;
 
+// Flags
+bool in_use = false;
+bool dirty = false;
+
+// FlashStorageConf
+
+FlashStorage(in_use_back, bool);
+
 void unpacker(char* str){
   char *ptrs[6];
   char *ptr = NULL;
@@ -86,6 +95,16 @@ void callback(char *topic, byte *payload, unsigned int length) {
       str_array[i] = (char) payload[i];
   }
   unpacker(str_array);
+}
+
+
+void loadPrevState(){
+  in_use = in_use_back.read();
+  if(in_use){
+    in_use_back.write(false);
+  }
+  Serial.print("Restored in_use_back from EEPROM. Value is ");
+  Serial.println(in_use);
 }
 
 
@@ -133,7 +152,7 @@ void setup() {
   Serial.print("Zero factor: "); //This can be used to remove the need to tare the scale. Useful in permanent scale projects.
   Serial.println(zero_factor);
   MyWatchDoggy.clear();
-  
+  loadPrevState();
   digitalWrite(LED_BUILTIN, HIGH);
 }
 
@@ -157,11 +176,6 @@ void print_weight(float units){
 
 unsigned long time = 0;
 int counter = 0;
-
-
-void send_latency(){
-
-}
 
 
 void report_time(){
@@ -239,9 +253,6 @@ void send_notification(String endpoint){
   }
 }
 
-void resetFunction(){
-  Serial.println("RESET SIGNAL");
-}
 
 // Counters
 int use_c = 0;
@@ -254,14 +265,21 @@ int cooldown_t = 5;
 int litter_weight = 0;
 long prev_millis = 0;
 
-// Flags
-bool in_use = false;
-bool dirty = false;
-
 
 // Timers
 unsigned long end_loop = 0;
 unsigned long start_loop = 0;
+
+void resetFunction(){
+  if(use_c>use_counter/2){
+    in_use=true;
+  }
+  if(in_use){
+    in_use_back.write(in_use);
+  }
+  Serial.println("RESET SIGNAL");
+}
+
 
 void loop() {
   // Get latest configuration from MQTT broker

@@ -5,7 +5,7 @@ from data_proxy.backend.web.errors import Denied
 from data_proxy.backend.web.models.edit import RssiAction, LitterUsed, TempAction, LatencyAction
 from datetime import datetime
 from fastapi import BackgroundTasks
-from data_proxy.backend.web.utils import save_to_influx, logger, telegram_send_message
+from data_proxy.backend.web.utils import save_to_influx, telegram_send_message
 import time
 
 router = fastapi.routing.APIRouter(
@@ -27,7 +27,6 @@ def rssi_action(*, data: RssiAction):
     start = datetime.now().timestamp()
     save_to_influx({'value': data.rssi_str}, "rssi")
     end = datetime.now().timestamp()
-    logger(f"RSSI;{end-start};\n")
     return CREATED
 
 
@@ -40,8 +39,6 @@ def litter_usage_action(*, data: LitterUsed):
     start = datetime.now().timestamp()
     save_to_influx({'value': 1}, "litter_usage")
     end = datetime.now().timestamp()
-    logger(f"LITTER;{end-start};\n")
-
     telegram_send_message(f"""
     🔈<b> Litterbox usage detected! </b>
     """)
@@ -55,12 +52,11 @@ def temperature_action(*, data: TempAction):
     start = datetime.now().timestamp()
     save_to_influx({'value': float(data.temperature)}, "temperature")
     end = datetime.now().timestamp()
-    logger(f"TMP;{end-start};\n")
     return CREATED
 
 
 @router.post("/latency", summary="Send latency data from sensor", status_code=201)
-def latency_action(*, data:LatencyAction):
+def latency_action(*, data: LatencyAction):
     if data.thing_token != THING_TOKEN:
         raise Denied
     save_to_influx({'value': float(data.latency)}, "latency")
