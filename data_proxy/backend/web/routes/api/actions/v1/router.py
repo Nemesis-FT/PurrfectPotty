@@ -7,6 +7,7 @@ from datetime import datetime
 from fastapi import BackgroundTasks
 from data_proxy.backend.web.utils import save_to_influx, telegram_send_message
 import time
+from data_proxy.backend.web.forecaster.survival import run_analysis
 
 router = fastapi.routing.APIRouter(
     prefix="/api/actions/v1",
@@ -33,7 +34,7 @@ def rssi_action(*, data: RssiAction):
 @router.post("/litter_usage",
              summary="Send alert about event 'litter_in_use'",
              status_code=201)
-def litter_usage_action(*, data: LitterUsed):
+async def litter_usage_action(*, data: LitterUsed, tasker: BackgroundTasks):
     if data.thing_token != THING_TOKEN:
         raise Denied
     start = datetime.now().timestamp()
@@ -42,6 +43,7 @@ def litter_usage_action(*, data: LitterUsed):
     telegram_send_message(f"""
     🔈<b> Litterbox usage detected! </b>
     """)
+    tasker.add_task(run_analysis)
     return CREATED
 
 
