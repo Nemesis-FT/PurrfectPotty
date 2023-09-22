@@ -52,7 +52,7 @@ def main_menu_handler(message):
     if message.text == 'Set Configuration':
         markup = types.ReplyKeyboardMarkup(row_width=3)
         markup = generate_buttons(
-            ['sampling_rate', 'use_counter', 'used_offset', 'tare_timeout', 'danger_threshold', 'danger_counter',
+            ['sampling_rate', 'use_counter', 'used_offset', 'tare_timeout',
              'back'], markup)
         message = bot.reply_to(message,
                                "Coming right up!",
@@ -103,14 +103,6 @@ def get_value_handler(message):
         message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
                         reply_markup=markup)
         bot.register_next_step_handler(message, set_config_tare_timeout)
-    elif choice == 'danger_threshold':
-        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
-                        reply_markup=markup)
-        bot.register_next_step_handler(message, set_config_danger_threshold)
-    elif choice == 'danger_counter':
-        message = bot.reply_to(message, f"you choose {choice}... Send me a message containing a number with / before it (e.g. /2).. Please make sure it is an integer value.",
-                        reply_markup=markup)
-        bot.register_next_step_handler(message, set_config_danger_counter)
     elif choice == 'back':
         markup = generate_buttons(['Get Configuration', 'Set Configuration'], markup)
         message = bot.reply_to(message, f"Going {choice} to main menu",
@@ -248,11 +240,9 @@ def get_settings():
     settings = requests.get(f'{API_URI}/api/settings/v1', headers={"Authorization": login()})
     settings = settings.json()
     text_settings = f"""sampling_rate: {settings['sampling_rate']} \n
-                    use_counter: {settings['use_counter']} \n  
-                    used_offset: {settings['used_offset']} \n
-                    tare_timeout: {settings['tare_timeout']} \n
-                    danger_threshold: {settings['danger_threshold']} \n
-                    danger_counter: {settings['danger_counter']} \n"""
+    use_counter: {settings['use_counter']} \n  
+    used_offset: {settings['used_offset']} \n
+    tare_timeout: {settings['tare_timeout']} \n"""
     return text_settings
 
 
