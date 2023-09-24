@@ -18,3 +18,4 @@ prophet~=1.1.4
 numpy~=1.26.0
 scikit-survival
 lifelines
+scikit-learn
