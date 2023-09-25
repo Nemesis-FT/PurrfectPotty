@@ -1,10 +1,12 @@
 #import matplotlib.pyplot as plt
+import datetime
+
 import pandas as pd
 import numpy as np
 import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
 from sklearn.linear_model import LinearRegression
-from data_proxy.backend.web.configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL
+from configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL
 from data_proxy.backend.web.utils import telegram_send_message
 
 
@@ -44,8 +46,6 @@ df['ds'] = pd.to_datetime(df['ds']).dt.date
 # Raggruppa per data e somma i valori 'y'
 nuovo_df = df.groupby('ds')['y'].sum().reset_index()
 
-print(nuovo_df)
-
 # Convertire le date in numeri ordinali (per utilizzarle in un modello di regressione)
 nuovo_df['ds_ordinal'] = nuovo_df['ds'].apply(lambda x: x.toordinal())
 
@@ -58,7 +58,7 @@ y = nuovo_df['y']
 model.fit(X, y)
 
 # Preparare i dati futuri per la previsione
-date_futuro = pd.date_range(start='2023-09-22', end='2023-09-25')
+date_futuro = pd.date_range(start=str(datetime.date.today()), end=str(datetime.date.today()+datetime.timedelta(days=2)))
 date_futuro_ordinal = [date.toordinal() for date in date_futuro]
 
 # Fare le previsioni
@@ -82,8 +82,18 @@ print(previsioni_df)
 '''
 # upload dati su influxdb
 write_api = client.write_api(write_options=SYNCHRONOUS)
-for forecast in previsioni_df:
-    write_api.write(bucket="ppredict", org=org, record=forecast['y_pred'], data_frame_measurement_name='litter_usage')
+for idx in previsioni_df.index:
+    elem = previsioni_df.iloc[idx, :]
+    data = elem.ds
+    value = elem.y_pred
+    p = influxdb_client.Point("litter_usage")
+    p.field("value", value)
+    p.time(data)
+
+
+
+    write_api.write(bucket="ppredict", org=org, record=p)
+    #write_api.write(bucket="ppredict", org=org, record=forecast['y_pred'], data_frame_measurement_name='litter_usage')
 
 # invio messaggio telegram
 telegram_send_message(f"🐱 Domani sono previsti ben {previsioni_df['y_pred'][0]} utilizzi 🐱")

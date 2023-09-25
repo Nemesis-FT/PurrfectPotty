@@ -38,7 +38,8 @@ def run_analysis():
     cph.fit(df, "duration", "observed")
 
     X = pd.DataFrame(index=["sub1"])
-    lower = (datetime.datetime.now() + datetime.timedelta(seconds=cph.predict_median(X)) + datetime.timedelta(hours=-1))
-    upper = (datetime.datetime.now() + datetime.timedelta(seconds=cph.predict_median(X)) + datetime.timedelta(hours=1))
+    curr_time = datetime.datetime.now()+datetime.timedelta(hours=-2)
+    lower = (curr_time + datetime.timedelta(seconds=cph.predict_median(X)) + datetime.timedelta(hours=-1))
+    upper = (curr_time + datetime.timedelta(seconds=cph.predict_median(X)) + datetime.timedelta(hours=1))
     telegram_send_message(
         f"Prossimo utilizzo: tra {lower.hour}:{lower.minute} e {upper.hour}:{upper.minute}")
