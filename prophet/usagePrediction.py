@@ -6,14 +6,21 @@ import numpy as np
 import influxdb_client
 from influxdb_client.client.write_api import SYNCHRONOUS
 from sklearn.linear_model import LinearRegression
-from configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL
-from data_proxy.backend.web.utils import telegram_send_message
+from configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL, BOT_TOKEN, CHAT_ID
+import requests
 
 
 bucket = IFD_BUCKET
 org = IFD_ORG
 token = IFD_TOKEN
 url = IFD_URL
+
+def telegram_send_message(message):
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage?chat_id={CHAT_ID}&text={message}&parse_mode=html")
+    except Exception as e:
+        print(e)
 
 
 # instanza del client

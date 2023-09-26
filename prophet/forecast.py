@@ -73,7 +73,7 @@ if __name__ == "__main__":
             time, elem = pred.iloc[idx]
             p = influxdb_client.Point(key)
             p.field("value", elem)
-            p.time(time-datetime.timedelta(hours=2))
+            p.time(time+datetime.timedelta(hours=2))
             write_api.write(bucket="ppredict", org=org, record=p)
             res_string += f"{round(elem,2)}\n"
         write_api.close()
