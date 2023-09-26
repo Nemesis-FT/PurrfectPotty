@@ -3,6 +3,9 @@ import pandas as pd
 import influxdb_client
 from data_proxy.backend.web.configuration import IFD_BUCKET, IFD_TOKEN, IFD_ORG, IFD_URL
 import datetime
+from lifelines import KaplanMeierFitter
+from lifelines.utils import median_survival_times
+
 from data_proxy.backend.web.utils import telegram_send_message
 
 bucket = IFD_BUCKET
@@ -20,7 +23,7 @@ def run_analysis():
 
     query_api = client.query_api()
     query = 'from(bucket: "pp1") \
-        |> range(start: -7d)\
+        |> range(start: -14d)\
         |> filter(fn: (r) => r["_measurement"] == "litter_usage")\
         |> filter(fn: (r) => r["_field"] == "value")'
     result = query_api.query(org=org, query=query)
@@ -34,13 +37,22 @@ def run_analysis():
         oldelem = elem.row[4].replace(tzinfo=None)
     df = pd.DataFrame({"observed": [True for i in tmp],
                        "duration": tmp})
-    cph = CoxPHFitter()
-    cph.fit(df, "duration", "observed")
+    kmf = KaplanMeierFitter()
+    kmf.fit(df["duration"], df["observed"])
 
-    X = pd.DataFrame(index=["sub1"])
-    curr_time = datetime.datetime.now()+datetime.timedelta(hours=0)
-    lower = (curr_time + datetime.timedelta(seconds=cph.predict_median(X)) + datetime.timedelta(hours=-1))
-    upper = (curr_time + datetime.timedelta(seconds=cph.predict_median(X)) + datetime.timedelta(hours=1))
-    print(f"Prossimo utilizzo: tra {lower.hour}:{lower.minute} e {upper.hour}:{upper.minute}")
-    #telegram_send_message(
-    #    f"Prossimo utilizzo: tra {lower.hour}:{lower.minute} e {upper.hour}:{upper.minute}")
+    median = datetime.timedelta(seconds=kmf.median_survival_time_)
+    confidence_interval = median_survival_times(kmf.confidence_interval_).iloc[0]
+
+    upper = confidence_interval[1]
+    lower = confidence_interval[0]
+
+    curr_time = datetime.datetime.now() + datetime.timedelta(hours=2)
+    max = (curr_time + median)
+    lower = (curr_time + datetime.timedelta(seconds=lower))
+    upper = (curr_time + datetime.timedelta(seconds=upper))
+    telegram_send_message(
+        f"Prossimo utilizzo tra {lower.hour}:{lower.minute} e {upper.hour}:{upper.minute}, massima probabilità alle {max.hour}:{max.minute}")
+
+
+if __name__ == "__main__":
+    run_analysis()
