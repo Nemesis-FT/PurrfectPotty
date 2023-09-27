@@ -101,7 +101,7 @@ if __name__ == "__main__":
                 rounding = 2
                 p.time(time+datetime.timedelta(hours=2))
             write_api.write(bucket="ppredict", org=org, record=p)
-            res_string += f"{round(elem,rounding)}\n"
+            res_string += f"{round(elem,rounding)} ({time})\n"
         write_api.close()
         telegram_send_message(res_string)
 
