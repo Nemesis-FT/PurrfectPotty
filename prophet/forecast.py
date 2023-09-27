@@ -99,7 +99,7 @@ if __name__ == "__main__":
                 p = influxdb_client.Point(key)
                 p.field("value", elem)
                 rounding = 2
-                p.time(time+datetime.timedelta(hours=2))
+                p.time(time)
             write_api.write(bucket="ppredict", org=org, record=p)
             res_string += f"{round(elem,rounding)} ({time})\n"
         write_api.close()
