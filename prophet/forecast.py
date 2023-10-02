@@ -75,7 +75,7 @@ def telegram_send_message(message):
 
 
 if __name__ == "__main__":
-    predictions = {"temperature": "temperatura", "latency": "latenza"}
+    predictions = {"temperature": "temperatura"}
     if len(sys.argv) > 1:
         predictions = {"litter_usage": "usi lettiera"}
     client = get_ifd_client()
@@ -101,7 +101,7 @@ if __name__ == "__main__":
                 rounding = 2
                 p.time(time)
             write_api.write(bucket="ppredict", org=org, record=p)
-            res_string += f"{round(elem,rounding)} ({time})\n"
+            res_string += f"{round(elem,rounding)}\n"
         write_api.close()
         telegram_send_message(res_string)
 

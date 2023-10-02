@@ -65,7 +65,7 @@ y = nuovo_df['y']
 model.fit(X, y)
 
 # Preparare i dati futuri per la previsione
-date_futuro = pd.date_range(start=str(datetime.date.today()), end=str(datetime.date.today()+datetime.timedelta(days=2)))
+date_futuro = pd.date_range(start=str(datetime.date.today()), end=str(datetime.date.today()+datetime.timedelta(days=1)))
 date_futuro_ordinal = [date.toordinal() for date in date_futuro]
 
 # Fare le previsioni
@@ -96,9 +96,6 @@ for idx in previsioni_df.index:
     p = influxdb_client.Point("litter_usage")
     p.field("value", value)
     p.time(data)
-
-
-
     write_api.write(bucket="ppredict", org=org, record=p)
     #write_api.write(bucket="ppredict", org=org, record=forecast['y_pred'], data_frame_measurement_name='litter_usage')
 
