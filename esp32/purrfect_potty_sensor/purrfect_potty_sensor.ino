@@ -47,7 +47,7 @@ float temperature;
 // DataProxy auth
 const char *thing_token = "";
 const char *http_address = "";
-const int http_port = 8000;
+const int http_port = 80;
 
 // Device configurable parameters
 int sampling_rate = 1500;
@@ -102,9 +102,9 @@ void loadPrevState(){
   in_use = in_use_back.read();
   if(in_use){
     in_use_back.write(false);
+    Serial.print("Restored in_use_back from EEPROM. Value is ");
+    Serial.println(in_use);
   }
-  Serial.print("Restored in_use_back from EEPROM. Value is ");
-  Serial.println(in_use);
 }
 
 
@@ -239,7 +239,6 @@ void send_temp(float temp){
 }
 
 void send_notification(String endpoint){
-  unsigned long start_time = millis();
   if(wifiClient2.connect(http_address, http_port)){
     HttpClient http(wifiClient2, http_address, http_port);
     String data = "{\"thing_token\":\"";
@@ -247,9 +246,6 @@ void send_notification(String endpoint){
     data.concat("\"}");
 
     http.post(endpoint, "application/json",data);
-    unsigned long end_time = millis();
-    counter++;
-    time+=end_time-start_time;
   }
 }
 
@@ -340,6 +336,9 @@ void loop() {
       cooldown_c++;
     }
     else{
+      if(keepAlive){
+        MyWatchDoggy.clear();
+      }
       Serial.println("  Litterbox has been used!");
       send_notification("/api/actions/v1/litter_usage");
       in_use = false;
