@@ -75,17 +75,17 @@ def telegram_send_message(message):
 
 
 if __name__ == "__main__":
-    predictions = {"temperature": "temperatura"}
+    predictions = {"temperature": "temperature"}
     if len(sys.argv) > 1:
-        predictions = {"litter_usage": "usi lettiera"}
+        predictions = {"litter_usage": "daily litterbox usages"}
     client = get_ifd_client()
     for key in predictions.keys():
         if key == "litter_usage":
             pred: pd.DataFrame = get_forecast(1, key)
-            res_string = f"Predizione di {predictions[key]} di domani:\n"
+            res_string = f"Forecast of {predictions[key]} for tomorrow:\n"
         else:
             pred: pd.DataFrame = get_forecast(6, key)
-            res_string = f"Predizione di {predictions[key]} nelle prossime 6 ore:\n"
+            res_string = f"Forecast of {predictions[key]} in the next 6 hours:\n"
         write_api = client.write_api(write_options=SYNCHRONOUS)
 
         for idx in range(len(pred)):

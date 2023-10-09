@@ -51,7 +51,7 @@ def run_analysis():
     lower = (curr_time + datetime.timedelta(seconds=lower))
     upper = (curr_time + datetime.timedelta(seconds=upper))
     telegram_send_message(
-        f"Prossimo utilizzo tra {lower.hour}:{lower.minute} e {upper.hour}:{upper.minute}, massima probabilità alle {max.hour}:{max.minute}")
+        f"Next usage between {lower.hour}:{lower.minute} and {upper.hour}:{upper.minute}, probability peak at {max.hour}:{max.minute}.")
 
 
 if __name__ == "__main__":

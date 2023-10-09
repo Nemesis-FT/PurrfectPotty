@@ -100,4 +100,4 @@ for idx in previsioni_df.index:
     #write_api.write(bucket="ppredict", org=org, record=forecast['y_pred'], data_frame_measurement_name='litter_usage')
 
 # invio messaggio telegram
-telegram_send_message(f"🐱 Domani sono previsti ben {previsioni_df['y_pred'][0]} utilizzi 🐱")
+telegram_send_message(f"🐱 Tomorrow the litterbox will get used {previsioni_df['y_pred'][0]} time(s) 🐱")
